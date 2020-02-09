@@ -1,0 +1,87 @@
+<!doctype html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>Vidtach Recorder!</title>
+        <link href="/record/node_modules/video.js/dist/video-js.min.css" rel="stylesheet">
+        <link href="/record/node_modules/videojs-wavesurfer/dist/css/videojs.wavesurfer.min.css" rel="stylesheet">
+        <link href="/record/dist/css/videojs.record.css" rel="stylesheet">
+
+        <script src="/record/node_modules/video.js/dist/video.min.js"></script>
+        <script src="/record/node_modules/recordrtc/RecordRTC.js"></script>
+        <script src="/record/node_modules/webrtc-adapter/out/adapter.js"></script>
+        <script src="/record/node_modules/wavesurfer.js/dist/wavesurfer.min.js"></script>
+        <script src="/record/node_modules/wavesurfer.js/dist/plugin/wavesurfer.microphone.min.js"></script>
+        <script src="/record/node_modules/videojs-wavesurfer/dist/videojs.wavesurfer.min.js"></script>
+
+        <script src="/record/dist/videojs.record.js"></script>
+
+        <script src="/record/assets/jquery/3.2.1/jquery.min.js"></script>
+
+        <script src="/record/browser-workarounds.js"></script>
+
+    </head>
+
+    <body>
+        <video id="vidtachrecorder" class="video-js vjs-default-skin"></video>
+
+        <script>
+        $(function() {
+            // apply some workarounds for certain browsers
+            applyAudioWorkaround();
+
+            var player = videojs('vidtachrecorder', {
+                controls: true,
+                width: 320,
+                height: 240,
+                fluid: false,
+                plugins: {
+                    record: {
+                        audio: true,
+                        video: true,
+                        maxLength: 30,
+                        debug: true
+                    }
+                }
+              }, function() {
+                // print version information at startup
+                var msg = 'Using video.js ' + videojs.VERSION +
+                    ' with videojs-record ' + videojs.getPluginVersion('record') +
+                    ', videojs-wavesurfer ' + videojs.getPluginVersion('wavesurfer') +
+                    ', wavesurfer.js ' + WaveSurfer.VERSION + ' and recordrtc ' +
+                    RecordRTC.version;
+                videojs.log(msg);
+            });
+
+            // player error handling
+            player.on('deviceError', function() {
+                console.warn('device error:', player.deviceErrorCode);
+            });
+
+            player.on('error', function(element, error) {
+                console.error(error);
+            });
+
+            // data is available
+            player.on('finishRecord', function() {
+                // the blob object contains the audio data
+                var audioFile = player.recordedData;
+
+                console.log('finished recording: ', audioFile);
+
+                var xhr = new XMLHttpRequest();
+                xhr.open("POST", '/?op=upload', true);
+                xhr.setRequestHeader("X_FILENAME", audioFile.name);
+                xhr.send(audioFile);
+
+                var message = 'Upload complete: <a target="_blank" href="/?op=play&filename='+audioFile.name+'">' + audioFile.name + '</a> (' +
+                    audioFile.size + ' bytes)';
+                $('<p/>').html(message).appendTo(document.body);
+                console.log(message);
+
+            });
+        });
+        </script>
+
+    </body>
+</html>
